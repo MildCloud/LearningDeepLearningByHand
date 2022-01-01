@@ -41,11 +41,11 @@ Multiplication = a * b
 #Multiple each element
 print("Multiplication = ", Multiplication)
 
-c = torch.cat((a,b), dim = 0)
-#operate the 1st dimension
+c = torch.cat((a, b), dim = 0)
+#operate the 1st dimension(the outside dimension)
 print(c)
 d = torch.cat((a, b), dim = 1)
-#operate the 2nd dimensiond
+#operate the 2nd dimensiond(the inside dimension)
 print(d)
 
 e = torch.arange(3).reshape(3,1)
@@ -103,3 +103,14 @@ input, output = data.iloc[:, 0 : 2], data.iloc[:, 2]
 input = input.fillna(input.mean())
 print(input)
 
+tensor1 = torch.tensor([1, 2, 3])
+tensor2 = torch.arange(100)
+print("tensor1 = ", tensor1)
+print("tensor2 = ", tensor2)
+
+tensor2 = tensor2.reshape(25, 4)
+print("tensor2 = ", tensor2)
+
+tensor3 = tensor2[tensor1]
+# A tensor can be used as an index of the other tensor
+print("tensor3 = ", tensor3)
