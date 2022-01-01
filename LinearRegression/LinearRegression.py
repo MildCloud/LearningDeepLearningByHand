@@ -70,12 +70,12 @@ def stochastic_gradient_descent(parameters, learn_rate, batch_size):
             parameter.grad.zero_()
 
 learn_rate = 0.03
-epochs = 3
+num_epochs = 3
 network = linreg
 # feed forward
 loss = squared_loss
 
-for epoch in range(epochs):
+for epoch in range(num_epochs):
     for X, y in data_iter(batch_size, features, labels):
         '''
         Each time choose batch_size datas from features and labels
@@ -84,6 +84,7 @@ for epoch in range(epochs):
         l = loss(network(X, w, b), y)
         print('y_predict = ', network(X, w, b))
         print('y_predict.shape = ', network(X, w, b).shape)
+        print('loss = ', l)
         # y.shape = torch.Size([10, 1])
         l.sum().backward()
         print('[w, b = ]', [w, b])
