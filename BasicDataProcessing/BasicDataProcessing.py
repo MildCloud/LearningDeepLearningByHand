@@ -114,3 +114,7 @@ print("tensor2 = ", tensor2)
 tensor3 = tensor2[tensor1]
 # A tensor can be used as an index of the other tensor
 print("tensor3 = ", tensor3)
+
+tensor4 = torch.tensor([0, 2])
+tensor5 = torch.tensor([[1, 2], [3, 4], [5, 6]])
+print(torch.matmul(tensor5, tensor4))

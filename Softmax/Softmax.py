@@ -1,16 +1,17 @@
 import random
 import torch
 
-# The following function is not used to feed forward, 
+
+# The following function is not used to feed forward,
 # it is used to create an artificial data set
 def synthetic_data(w, b, num_examples):
     '''
     Generate y = Xw + b + noise
     '''
     X = torch.normal(0, 1, (num_examples, len(w)))
-    # The mean value is 0, the satndard deviation is 1, 
+    # The mean value is 0, the satndard deviation is 1,
     # row is num_examples, column is len(w)
-    y = torch.matmul(X,w) + b
+    y = torch.matmul(X, w) + b
     # matrix multiplication
     y += torch.normal(0, 0.01, y.shape)
     # y :  1000 row and 1 column (one dimension)
@@ -23,11 +24,13 @@ def synthetic_data(w, b, num_examples):
     return X, y.reshape((-1, 1))
     # -1 auto calculate
 
+
 true_w = torch.tensor([2, -3.4])
 true_b = 4.2
 features, labels = synthetic_data(true_w, true_b, 1000)
 
 print('feature:', features[0], '\nlabel:', labels[0])
+
 
 def data_iter(batch_size, features, labels):
     num_examples = len(features)
@@ -41,35 +44,41 @@ def data_iter(batch_size, features, labels):
         # batch_indices = tensor([indices[i], indices[i + 1], ..., indices[min(i + batch_size, num_examples)]])
         yield features[batch_indices], labels[batch_indices]
 
+
 batch_size = 10
 
 for X, y in data_iter(batch_size, features, labels):
     print(X, '\n', y)
 
-w = torch.normal(0, 0.01, size = (2, 1), requires_grad = True)
-b = torch.zeros(1, requires_grad = True)
-#b is a scalar quantity
+w = torch.normal(0, 0.01, size=(2, 1), requires_grad=True)
+b = torch.zeros(1, requires_grad=True)
+
+
+# b is a scalar quantity
 
 def linreg(X, w, b):
     '''线性模型'''
     return torch.matmul(X, w) + b
- 
+
+
 def squared_loss(y_hat, y):
     '''均方误差'''
     # y_hat represents the predictic value while y represents the true value
-    return (y_hat - y.reshape(y_hat.shape))**2 / 2
+    return (y_hat - y.reshape(y_hat.shape)) ** 2 / 2
     # The above operation is used to modify each single element
     # **2 means square
+
 
 def stochastic_gradient_descent(parameters, learn_rate, batch_size):
     '''小批量随机梯度下降'''
     with torch.no_grad():
-    # 更新的时候不需要梯度参与运算
+        # 更新的时候不需要梯度参与运算
         for parameter in parameters:
             print('parameter = ', parameter)
             print('parameter.grad = ', parameter.grad)
             parameter -= learn_rate * parameter.grad / batch_size
             parameter.grad.zero_()
+
 
 learn_rate = 0.03
 num_epochs = 3
