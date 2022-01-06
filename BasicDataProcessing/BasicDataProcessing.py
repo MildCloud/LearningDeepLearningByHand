@@ -23,7 +23,7 @@ print("y.shape = ", y.shape)
 
 print("y[-1] = ", y[-1])
 print("y[1:3] = ", y[1:3])
-print("y[1]2][3] = ", y[1][2][3])
+print("y[1][2][3] = ", y[1][2][3])
 #Each[] makes the return value has a less dimension([]) of the original tensor
 
 a = torch.arange(12, dtype = torch.float32)
@@ -55,7 +55,14 @@ print("e = ", e)
 print("f = ", f)
 g = f + e
 #Using broadcasting mechanism
-print(g)
+print("g = ", g)
+a=numpy.array([[[1,2],[2,3],[3,4]],[[2,3],[4,5],[7,8]]])#2*3*2
+b=numpy.array([[6,6],[7,7],[8,8]])#3*2
+print(a.shape)
+print(b.shape)
+c=b/a
+print(c)
+print(c.shape)
 
 #Menmory in python
 before = id(y)
@@ -118,3 +125,4 @@ print("tensor3 = ", tensor3)
 tensor4 = torch.tensor([0, 2])
 tensor5 = torch.tensor([[1, 2], [3, 4], [5, 6]])
 print(torch.matmul(tensor5, tensor4))
+

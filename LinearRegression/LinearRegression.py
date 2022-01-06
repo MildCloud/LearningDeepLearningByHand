@@ -20,6 +20,7 @@ def synthetic_data(w, b, num_examples):
     print("y.shape = ", y.shape)
     print("y.reshape((-1, 1)) = ", y.reshape((-1, 1)))
     print("y.reshape.shape = ", y.reshape((-1, 1)).shape)
+    # reshape function will not change the shape of the tensor directly
     return X, y.reshape((-1, 1))
     # -1 auto calculate
 
@@ -40,6 +41,9 @@ def data_iter(batch_size, features, labels):
         batch_indices = torch.tensor(indices[i:min(i + batch_size, num_examples)])
         # batch_indices = tensor([indices[i], indices[i + 1], ..., indices[min(i + batch_size, num_examples)]])
         yield features[batch_indices], labels[batch_indices]
+        """
+        To generate a python iterator use data.DataLoader() or use for and yeild
+        """
 
 batch_size = 10
 
