@@ -1,2 +1,2 @@
 # LearningDeepLearningByHand
-![!](Mindmap.png)
+![!](./data/Mindmap.png)
