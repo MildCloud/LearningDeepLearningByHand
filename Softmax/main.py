@@ -54,8 +54,8 @@ def load_data_fashion_mnist(f_batch_size, resize=None):
     if resize:
         f_trans.insert(0, transforms.Resize(resize))
     f_trans = transforms.Compose(f_trans)
-    f_mnist_train = torchvision.datasets.FashionMNIST(root="./data", train=True, transform=f_trans, download=True)
-    f_mnist_test = torchvision.datasets.FashionMNIST(root="./data", train=False, transform=f_trans, download=True)
+    f_mnist_train = torchvision.datasets.FashionMNIST(root="../data", train=True, transform=f_trans, download=True)
+    f_mnist_test = torchvision.datasets.FashionMNIST(root="../data", train=False, transform=f_trans, download=True)
     return (data.DataLoader(f_mnist_train, f_batch_size, shuffle=True, num_workers=workers),
             data.DataLoader(f_mnist_test, f_batch_size, shuffle=True, num_workers=workers))
     # To return two iterator, () is used
@@ -101,7 +101,7 @@ def net(f_x_matrix):
     # # f_matrix.shape = torch.Size([256, 1, 28, 28])
     # w_matrix.shape[0] = 784
     # print("f_x_matrix.reshape(-1, w_matrix.shape[0]).shape = ", f_x_matrix.reshape(-1, w_matrix.shape[0]).shape)
-    # # f_x_matrix.reshape(-1, w_matrix.shape[0]) = torch.Size([256, 784])
+    # # f_x_matrix.reshape(-1, w_matrix.shape[0]).shape = torch.Size([256, 784])
     return softmax(torch.matmul(f_x_matrix.reshape(-1, w_matrix.shape[0]), w_matrix) + b_matrix)
 
 
