@@ -45,3 +45,4 @@ loss = nn.CrossEntropyLoss()
 trainer = torch.optim.SGD(net.parameters(), lr=0.1)
 num_epochs = 10
 d2l.train_ch3(net, train_iter, test_iter, loss, num_epochs, trainer)
+d2l.plt.show()

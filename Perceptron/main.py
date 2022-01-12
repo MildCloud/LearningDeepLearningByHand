@@ -208,3 +208,4 @@ def updater(f_batch_size):
     return stochastic_gradient_descent(params, learn_rate, f_batch_size)
 
 train_softmax(net, train_iter, test_iter, cross_entropy, num_epochs, updater)
+d2l.plt.show()
