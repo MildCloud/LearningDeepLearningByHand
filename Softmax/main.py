@@ -183,9 +183,9 @@ def evaluate_accuracy(f_network, f_data_iter):
 
 def train_epoch_softmax(f_network, f_train_iter, loss, f_updater):
     if isinstance(net, torch.nn.Module):
-        net.train()
+        f_network.train()
     metric = Accumulator(3)
-    for X, y in train_iter:
+    for X, y in f_train_iter:
         # X.shape = torch.Size[256, 1, 28, 28]
         y_hat = net(X)
         # softmax
