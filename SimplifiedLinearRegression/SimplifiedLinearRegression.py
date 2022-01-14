@@ -29,7 +29,7 @@ batch_size = 10
 data_iter = load_array((features, labels), batch_size)
 
 next(iter(data_iter))
-# change data_iter to a python iterator
+# change data_iter to a python iterator(Python iter is not the same as pytorch iter)
 
 network = nn.Sequential(nn.Linear(2, 1))
 '''

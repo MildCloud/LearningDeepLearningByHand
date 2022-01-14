@@ -102,7 +102,7 @@ class Accumulator:
 
 def evaluate_accuracy(f_network, f_data_iter):
     # use a data_iter to check evaluate the accuracy of the specific network
-    if isinstance(net, torch.nn.Module):
+    if isinstance(f_network, torch.nn.Module):
         f_network.eval()  # change the model to evaluation
     metric = Accumulator(2)
     for X, y in f_data_iter:
@@ -111,12 +111,12 @@ def evaluate_accuracy(f_network, f_data_iter):
 
 
 def train_epoch_softmax(f_network, f_train_iter, loss, f_updater):
-    if isinstance(net, torch.nn.Module):
-        net.train()
+    if isinstance(f_network, torch.nn.Module):
+        f_network.train()
     metric = Accumulator(3)
-    for X, y in train_iter:
+    for X, y in f_train_iter:
         # X.shape = torch.Size[256, 1, 28, 28]
-        y_hat = net(X)
+        y_hat = f_network(X)
         # softmax
         f_l = loss(y_hat, y)
         # cross entropy
@@ -200,7 +200,7 @@ def stochastic_gradient_descent(parameters, f_learn_rate, f_batch_size):
         for parameter in parameters:
             # print('parameter = ', parameter)
             # print('parameter.grad = ', parameter.grad)
-            parameter -= learn_rate * parameter.grad / batch_size
+            parameter -= f_learn_rate * parameter.grad / f_batch_size
             parameter.grad.zero_()
 
 
