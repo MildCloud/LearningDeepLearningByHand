@@ -23,7 +23,7 @@ class MLP(nn.Module):
 
 
 mlp_net = MLP()
-print(mlp_net(x))
+# print(mlp_net(x))
 
 
 class MySequential(nn.Module):
@@ -76,3 +76,82 @@ class NestMLP(nn.Module):
 
 chimera = nn.Sequential(NestMLP(), nn.Linear(16, 20), FixedHiddenMLP())
 chimera(x)
+
+
+simple_net = nn.Sequential(nn.Linear(4, 8), nn.ReLU(), nn.Linear(8, 1))
+# x = torch.rand(2, 4)
+# print("simple_net[2].state_dict() = ", simple_net[2].state_dict())
+# # simple_net[2] = nn.Linear(8, 1)
+# # OrderedDict([('weight', tensor([]), ('bias', tensor([]))])
+# print("type(simple_net[2].bias) = ", type(simple_net[2].bias))
+# # type(simple_net[2].bias) = <class 'torch.nn.parameter.Parameter'>
+# print("simple_net[2].bias = ", simple_net[2].bias)
+# # simple_net[2].bias = Parameter containing:
+# # tensor([-0.1472], requires_grad=True)
+# print("simple_net[2].bias.data = ", simple_net[2].bias.data)
+# # simple_net[2].bias.data = tensor([-0.1472])
+# print("simple_net[2].bias.grad = ", simple_net[2].bias.grad)
+# # None
+
+# print(*[(name, param.shape) for name, param in simple_net.named_parameters()])
+# # To go through every parameter in the net
+#
+# print("net.state_dict()['2.bias'].data = ", simple_net.state_dict()['2.bias'].data)
+# # simple_net[2].bias
+
+
+def block1():
+    return nn.Sequential(nn.Linear(4, 8), nn.ReLU(), nn.Linear(8, 4), nn.ReLU())
+
+
+def block2():
+    f_net = nn.Sequential()
+    for i in range(4):
+        f_net.add_module(f'block {i}', block1())
+    return f_net
+
+
+nested_net = nn.Sequential(block2(), nn.Linear(4, 1))
+
+print("nested_net = ", nested_net)
+
+
+def init_normal(f_m):
+    if type(f_m) == nn.Linear:
+        # if the type of f_m is Linear
+        nn.init.normal_(f_m.weight, mean=0, std=0.01)
+        # nn.init.constant_(f_m.weight, 1)
+        nn.init.zeros_(f_m.bias)
+
+
+nested_net.apply(init_normal)
+# apply is a function that can be used to traverse the whole sequence and make changes
+
+
+def xavier(f_m):
+    if type(f_m) == nn.Linear:
+        nn.init.xavier_uniform_(f_m.weight)
+        # xavier_uniform_(): uniform distribution
+
+
+def init_42(f_m):
+    if type(f_m) == nn.Linear:
+        nn.init.constant_(f_m.weight, 42)
+
+
+def my_init(f_m):
+    if type(f_m) == nn.Linear:
+        print(
+            "Init",
+            *[(name, param.shape) for name, param in f_m.name_parameters()][0]
+        )
+        nn.init.uniform_(f_m.weight, -10, 10)
+        f_m.weight.data *= f_m.weight.data.abs() >= 5
+
+
+net[0].weight.data[:] += 1
+
+# parameter binding
+shared = nn.Linear(8, 8)
+shared_net = nn.Sequential(nn.Linear(4, 8), nn.ReLU(), shared, nn.ReLU(), shared, nn.ReLU(), nn.Linear(8, 1))
+# shared_net[2].data == shared_net[4].data
