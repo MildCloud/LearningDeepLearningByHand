@@ -23,6 +23,8 @@ class MLP(nn.Module):
 
 
 mlp_net = MLP()
+
+
 # print(mlp_net(x))
 
 
@@ -77,8 +79,9 @@ class NestMLP(nn.Module):
 chimera = nn.Sequential(NestMLP(), nn.Linear(16, 20), FixedHiddenMLP())
 chimera(x)
 
-
 simple_net = nn.Sequential(nn.Linear(4, 8), nn.ReLU(), nn.Linear(8, 1))
+
+
 # x = torch.rand(2, 4)
 # print("simple_net[2].state_dict() = ", simple_net[2].state_dict())
 # # simple_net[2] = nn.Linear(8, 1)
@@ -113,7 +116,9 @@ def block2():
 
 nested_net = nn.Sequential(block2(), nn.Linear(4, 1))
 
-print("nested_net = ", nested_net)
+
+# print("nested_net = ", nested_net)
+# # show all information
 
 
 def init_normal(f_m):
@@ -125,6 +130,8 @@ def init_normal(f_m):
 
 
 nested_net.apply(init_normal)
+
+
 # apply is a function that can be used to traverse the whole sequence and make changes
 
 
@@ -154,4 +161,56 @@ net[0].weight.data[:] += 1
 # parameter binding
 shared = nn.Linear(8, 8)
 shared_net = nn.Sequential(nn.Linear(4, 8), nn.ReLU(), shared, nn.ReLU(), shared, nn.ReLU(), nn.Linear(8, 1))
+
+
 # shared_net[2].data == shared_net[4].data
+
+
+class CenteredLayer(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, f_x):
+        return f_x - f_x.mean()
+
+
+class MyLinear(nn.Module):
+    def __init__(self, f_in_units, f_out_units):
+        super().__init__()
+        self.weight = nn.Parameter(torch.randn(f_in_units, f_out_units))
+        self.bias = nn.Parameter(torch.randn(f_out_units))
+
+    def forward(self, f_x):
+        linear = torch.matmul(f_x, self.weight.data) + self.bias.data
+        return functional.relu(linear)
+
+
+linear_net = MyLinear(5, 3)
+# print("linear_net.weight = ", linear_net.weight)
+# print("MyLinear = ", MyLinear)
+# print("nn.Sequential(linear_net) = ", nn.Sequential(linear_net))
+# print("linear_net(torch.rand(10, 5)) = ", linear_net(torch.rand(10, 5)))
+# # shape = torch.Size([10, 3])
+
+
+save_x1 = torch.arange(4)
+save_x2 = torch.arange(4)
+torch.save(save_x1, 'save_file')
+load_x = torch.load('save_file')
+# print("load_x = ", load_x)
+
+saved_list = [save_x1, save_x2]
+torch.save(saved_list, 'save_list_file')
+load_x1, load_x2 = torch.load('save_list_file')
+
+saved_dict = {'x1': save_x1, 'x2': save_x2}
+torch.save(saved_dict, 'saved_dict_file')
+
+# save and load a whole neutral network e.g.MLP()
+mlp_x = torch.rand(size=(2, 20))
+mlp_y = mlp_net(mlp_x)
+torch.save(mlp_net.state_dict(), 'mlp')
+clone_mlp_net = MLP()
+clone_mlp_net.load_state_dict(torch.load('mlp'))
+clone_y = clone_mlp_net(mlp_x)
+print("clone_y==mlp_y = ", clone_y == mlp_y)
