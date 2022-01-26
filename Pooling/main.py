@@ -15,6 +15,7 @@ def pool2d(f_x, f_pool_size, f_mode='max'):
 
 
 x = torch.arange(9.0)
+# torch.range will be deleted in later version
 x = x.reshape(3, 3)
 print("max pooling = ", pool2d(x, (2, 2)))
 print("average pooling = ", pool2d(x, (2, 2), 'avg'))
