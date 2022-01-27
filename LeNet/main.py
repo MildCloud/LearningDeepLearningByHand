@@ -216,6 +216,7 @@ def train_ch6(f_net, f_train_iter, f_test_iter, f_num_epochs, f_lr, f_device):
         metric = Accumulator(3)
         f_net.train()
         for i, (f_x_set, f_y) in enumerate(f_train_iter):
+            # f_x_set.shape = torch.Size[256, 1, 28, 28]
             timer.start()
             optimizer.zero_grad()
             # The self-defined stochastic gradient descent function will set the grd to be zero at the end of the loop
@@ -225,7 +226,7 @@ def train_ch6(f_net, f_train_iter, f_test_iter, f_num_epochs, f_lr, f_device):
             l.backward()
             optimizer.step()
             with torch.no_grad():
-                metric.add(1 * f_x_set.shape[0], accuracy(f_y_hat, f_y), f_x_set.shape[0])
+                metric.add(l * f_x_set.shape[0], accuracy(f_y_hat, f_y), f_x_set.shape[0])
             timer.start()
             f_train_loss = metric[0] / metric[2]
             f_train_accuracy = metric[1] / metric[2]
