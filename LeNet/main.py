@@ -227,7 +227,7 @@ def train_ch6(f_net, f_train_iter, f_test_iter, f_num_epochs, f_lr, f_device):
             optimizer.step()
             with torch.no_grad():
                 metric.add(l * f_x_set.shape[0], accuracy(f_y_hat, f_y), f_x_set.shape[0])
-            timer.start()
+            timer.stop()
             f_train_loss = metric[0] / metric[2]
             f_train_accuracy = metric[1] / metric[2]
             if (i + 1) % (num_batches // 5) == 0 or i == num_batches - 1:
@@ -235,7 +235,7 @@ def train_ch6(f_net, f_train_iter, f_test_iter, f_num_epochs, f_lr, f_device):
         f_test_accuracy = evaluate_accuracy_gpu(f_net, f_test_iter)
         animator.add(epoch + 1, (None, None, f_test_accuracy))
     print(f'loss {f_train_loss:.3f}, train accuracy {f_train_accuracy:.3f}, test accuracy {f_test_accuracy:.3f}')
-    print(f'{metric[2] * f_num_epochs / timer.sum():.1f} examples/sec on {str(f_device)}')
+    print(f'{metric[2] * f_num_epochs / timer.sum():.1f} examples/sec' f' on {str(f_device)}')
 
 
 def try_gpu(i=0):
