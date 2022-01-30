@@ -104,7 +104,7 @@ def load_data_fashion_mnist(f_batch_size, resize=None):
             data.DataLoader(f_mnist_test, f_batch_size, shuffle=True, num_workers=workers))
 
 
-train_iter, test_iter = load_data_fashion_mnist(batch_size, resize=224)
+train_iter, test_iter = load_data_fashion_mnist(batch_size, resize=96)
 
 
 def accuracy(f_y_hat, f_y):
