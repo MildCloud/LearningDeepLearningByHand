@@ -70,3 +70,16 @@ net = nn.Sequential(
     nn.Linear(120, 84), BatchNorm(84, 2), nn.Sigmoid(),
     nn.Linear(84, 10)
 )
+
+tensor = torch.tensor([[1.0, 2], [3, 4]])
+print("tensor.mean(1) = ", tensor.mean(1))
+print("tensor.mean(0) = ", tensor.mean(0))
+# tensor.mean(1) =  tensor([1.5000, 3.5000])
+# tensor.mean(0) =  tensor([2., 3.])
+# The dimension after mean function will be reduced by 1
+tensor = torch.arange(16.0)
+tensor = tensor.reshape(2, 2, 2, 2)
+print("tensor = ", tensor)
+print("tensor.mean((0), keepdim=True) = ", tensor.mean((0), True))
+print("tensor.mean((0, 3), keepdim=True) = ", tensor.mean((0, 3), True))
+print("tensor.mean((0, 2, 3), keepdim=True) = ", tensor.mean((0, 2, 3), True))
