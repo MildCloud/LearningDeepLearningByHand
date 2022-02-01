@@ -81,8 +81,8 @@ net = nn.Sequential(
     nn.Conv2d(6, 16, (5, 5)), nn.BatchNorm2d(16), nn.Sigmoid(),
     nn.AvgPool2d((2, 2), 2),
     nn.Flatten(),
-    nn.Linear(16 * 4 * 4, 120), nn.BatchNorm2d(120), nn.Sigmoid(),
-    nn.Linear(120, 84), nn.BatchNorm2d(84), nn.Sigmoid(),
+    nn.Linear(16 * 4 * 4, 120), nn.BatchNorm1d(120), nn.Sigmoid(),
+    nn.Linear(120, 84), nn.BatchNorm1d(84), nn.Sigmoid(),
     nn.Linear(84, 10)
 )
 
@@ -281,10 +281,10 @@ def train_ch6(f_net, f_train_iter, f_test_iter, f_num_epochs, f_lr, f_device):
         f_test_accuracy = evaluate_accuracy_gpu(f_net, f_test_iter)
         animator.add(epoch + 1, (None, None, f_test_accuracy))
     print(f'loss {f_train_loss:.3f}, train accuracy {f_train_accuracy:.3f}, test accuracy {f_test_accuracy:.3f}')
-    print(f'loss {f_train_loss:.3f}, train accuracy {f_train_accuracy:.3f}, test accuracy {f_test_accuracy:.3f}')
+    print(f'{metric[2] * f_num_epochs / timer.sum(): .1f} examples/sec on {str(f_device)}')
     with open(data_file, 'w') as f:
         f.write(f'loss {f_train_loss:.3f}, train accuracy {f_train_accuracy:.3f}, test accuracy {f_test_accuracy:.3f}\n')
-        f.write(f'loss {f_train_loss:.3f}, train accuracy {f_train_accuracy:.3f}, test accuracy {f_test_accuracy:.3f}\n')
+        f.write(f'{metric[2] * f_num_epochs / timer.sum(): .1f} examples/sec on {str(f_device)}\n')
 
 
 def try_gpu(i=0):
