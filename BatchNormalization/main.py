@@ -75,6 +75,17 @@ net = nn.Sequential(
     nn.Linear(84, 10)
 )
 
+net = nn.Sequential(
+    nn.Conv2d(1, 6, (5, 5)), nn.BatchNorm2d(6), nn.Sigmoid(),
+    nn.AvgPool2d((2, 2), 2),
+    nn.Conv2d(6, 16, (5, 5)), nn.BatchNorm2d(16), nn.Sigmoid(),
+    nn.AvgPool2d((2, 2), 2),
+    nn.Flatten(),
+    nn.Linear(16 * 4 * 4, 120), nn.BatchNorm2d(120), nn.Sigmoid(),
+    nn.Linear(120, 84), nn.BatchNorm2d(84), nn.Sigmoid(),
+    nn.Linear(84, 10)
+)
+
 # tensor = torch.tensor([[1.0, 2], [3, 4]])
 # print("tensor.mean(1) = ", tensor.mean(1))
 # print("tensor.mean(0) = ", tensor.mean(0))
