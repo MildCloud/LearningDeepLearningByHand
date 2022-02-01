@@ -289,4 +289,4 @@ lr, num_epochs = 1, 10
 train_ch6(net, train_iter, test_iter, num_epochs, lr, try_gpu())
 
 plt.show()
-
+plt.savefig("./train_result")
