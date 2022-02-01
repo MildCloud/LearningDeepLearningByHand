@@ -1,0 +1,2 @@
+loss 0.012, train accuracy 0.997, test accuracy 0.919
+ 3423.7 examples/sec on cuda:0
