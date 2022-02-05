@@ -235,7 +235,9 @@ def train(f_net, f_train_iter, f_test_iter, f_num_epochs, f_lr, f_num_gpus):
             # The self-defined stochastic gradient descent function will set the grd to be zero at the end of the loop
             f_x_set, f_y = f_x_set.to(devices[0]), f_y.to(devices[0])
             f_y_hat = f_net(f_x_set)
+            f_y_hat = f_y_hat.to(devices[0])
             l = loss(f_y_hat, f_y)
+            l = l.to(devices[0])
             l.backward()
             optimizer.step()
             with torch.no_grad():
@@ -246,7 +248,7 @@ def train(f_net, f_train_iter, f_test_iter, f_num_epochs, f_lr, f_num_gpus):
             f_train_accuracy = metric[1] / metric[2]
             if (i + 1) % (num_batches // 5) == 0 or i == num_batches - 1:
                 animator.add(epoch + (i + 1) / num_batches, (f_train_loss, f_train_accuracy, None))
-        f_test_accuracy = evaluate_accuracy_gpu(f_net, f_test_iter)
+        f_test_accuracy = evaluate_accuracy_gpu(f_net, f_test_iter, devices[0])
         animator.add(epoch + 1, (None, None, f_test_accuracy))
     print(f'loss {f_train_loss:.3f}, train accuracy {f_train_accuracy:.3f}, test accuracy {f_test_accuracy:.3f}')
     print(f'{metric[2] * f_num_epochs / timer.sum():.1f} examples/sec' f' on {str(devices)}')
