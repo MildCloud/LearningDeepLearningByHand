@@ -109,19 +109,144 @@ def train_batch_ch13(f_net, f_x_set, f_y, f_loss, f_trainer, f_devices):
     return train_loss_sum, train_acc_sum
 
 
+class Accumulator:
+    def __init__(self, n):
+        self.data = [0.0] * n
+
+    def add(self, *args):
+        self.data = [a + float(b) for a, b in zip(self.data, args)]
+
+    def reset(self):
+        self.data = [0.0] * len(self.data)
+
+    def __getitem__(self, item):
+        return self.data[item]
+
+
+def evaluate_accuracy_gpu(f_net, f_data_iter, device=None):
+    """use GPU to calculate the accuracy"""
+    if isinstance(f_net, torch.nn.Module):
+        f_net.eval()
+        if not device:
+            device = next(iter(net.parameters())).device
+    metric = Accumulator(2)
+    for f_x_set, f_y in f_data_iter:
+        if isinstance(f_x_set, list):
+            f_x_set = [f_x.to(device) for f_x in f_x_set]
+        else:
+            f_x_set = f_x_set.to(device)
+        f_y = f_y.to(device)
+        metric.add(accuracy(net(f_x_set), f_y), f_y.numel())
+    return metric[0] / metric[1]
+
+
+def set_axes(axes, xlabel, ylabel, xlim, ylim, xscale, yscale, legend):
+    """Set the axes for matplotlib.
+
+    Defined in :numref:`sec_calculus`"""
+    axes.set_xlabel(xlabel)
+    axes.set_ylabel(ylabel)
+    axes.set_xscale(xscale)
+    axes.set_yscale(yscale)
+    axes.set_xlim(xlim)
+    axes.set_ylim(ylim)
+    if legend:
+        axes.legend(legend)
+    axes.grid()
+
+
+class Animator:  # @save
+    """For plotting data in animation."""
+
+    def __init__(self, xlabel=None, ylabel=None, legend=None, xlim=None,
+                 ylim=None, xscale='linear', yscale='linear',
+                 fmts=('-', 'm--', 'g-.', 'r:'), nrows=1, ncols=1,
+                 figsize=(3.5, 2.5)):
+        # Incrementally plot multiple lines
+        if legend is None:
+            legend = []
+        self.fig, self.axes = plt.subplots(nrows, ncols, figsize=figsize)
+        if nrows * ncols == 1:
+            self.axes = [self.axes, ]
+        # Use a lambda function to capture arguments
+        self.config_axes = lambda: set_axes(self.axes[0], xlabel, ylabel, xlim, ylim, xscale, yscale, legend)
+        self.X, self.Y, self.fmts = None, None, fmts
+
+    def add(self, x, y):
+        # Add multiple data points into the figure
+        if not hasattr(y, "__len__"):
+            y = [y]
+        n = len(y)
+        if not hasattr(x, "__len__"):
+            x = [x] * n
+        if not self.X:
+            self.X = [[] for _ in range(n)]
+        if not self.Y:
+            self.Y = [[] for _ in range(n)]
+        for i, (a, b) in enumerate(zip(x, y)):
+            if a is not None and b is not None:
+                self.X[i].append(a)
+                self.Y[i].append(b)
+        self.axes[0].cla()
+        for x, y, fmt in zip(self.X, self.Y, self.fmts):
+            self.axes[0].plot(x, y, fmt)
+        self.config_axes()
+        display.display(self.fig)
+        display.clear_output(wait=True)
+
+
+class Timer:
+    """Record multiple running times."""
+    def __init__(self):
+        """Defined in :numref:`subsec_linear_model`"""
+        self.times = []
+        self.start()
+
+    def start(self):
+        """Start the timer."""
+        self.tik = time.time()
+
+    def stop(self):
+        """Stop the timer and record the time in a list."""
+        self.times.append(time.time() - self.tik)
+        return self.times[-1]
+
+    def avg(self):
+        """Return the average time."""
+        return sum(self.times) / len(self.times)
+
+    def sum(self):
+        """Return the sum of time."""
+        return sum(self.times)
+
+    def cumsum(self):
+        """Return the accumulated time."""
+        return np.array(self.times).cumsum().tolist()
+
+
+
+def try_all_gpus():
+    """Return all available GPUs, or [cpu(),] if no GPU exists.
+
+    Defined in :numref:`sec_use_gpu`"""
+    devices = [torch.device(f'cuda:{i}')
+             for i in range(torch.cuda.device_count())]
+    return devices if devices else [torch.device('cpu')]
+
+
 def train_ch13(net, train_iter, test_iter, loss, trainer, num_epochs,
-               devices=d2l.try_all_gpus()):
+               devices=try_all_gpus()):
     """Train a model with mutiple GPUs (defined in Chapter 13).
 
     Defined in :numref:`sec_image_augmentation`"""
-    timer, num_batches = d2l.Timer(), len(train_iter)
-    animator = d2l.Animator(xlabel='epoch', xlim=[1, num_epochs], ylim=[0, 1],
+    timer, num_batches = Timer(), len(train_iter)
+    animator = Animator(xlabel='epoch', xlim=[1, num_epochs], ylim=[0, 1],
                             legend=['train loss', 'train acc', 'test acc'])
     net = nn.DataParallel(net, device_ids=devices).to(devices[0])
     for epoch in range(num_epochs):
         # Sum of training loss, sum of training accuracy, no. of examples,
         # no. of predictions
-        metric = d2l.Accumulator(4)
+        metric = Accumulator(4)
         for i, (features, labels) in enumerate(train_iter):
             timer.start()
             l, acc = train_batch_ch13(
@@ -132,7 +257,7 @@ def train_ch13(net, train_iter, test_iter, loss, trainer, num_epochs,
                 animator.add(epoch + (i + 1) / num_batches,
                              (metric[0] / metric[2], metric[1] / metric[3],
                               None))
-        test_acc = d2l.evaluate_accuracy_gpu(net, test_iter)
+        test_acc = evaluate_accuracy_gpu(net, test_iter)
         animator.add(epoch + 1, (None, None, test_acc))
     print(f'loss {metric[0] / metric[2]:.3f}, train acc '
           f'{metric[1] / metric[3]:.3f}, test acc {test_acc:.3f}')
@@ -140,7 +265,7 @@ def train_ch13(net, train_iter, test_iter, loss, trainer, num_epochs,
           f'{str(devices)}')
 
 
-batch_size, devices, net = 256, d2l.try_all_gpus(), d2l.resnet18(10)
+batch_size, devices, net = 256, try_all_gpus(), d2l.resnet18(10)
 
 
 def init_weights(m):
