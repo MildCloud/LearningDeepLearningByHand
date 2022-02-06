@@ -9,7 +9,6 @@ import time
 import numpy as np
 import os
 from PIL import Image
-from d2l import torch as d2l
 
 
 figsize=(3.5, 2.5)
@@ -17,6 +16,56 @@ plt.rcParams['figure.figsize'] = figsize
 image = Image.open('./cat1.png')
 plt.imshow(image)
 # plt.show()
+
+
+class Residual(nn.Module):
+    def __init__(self, input_channels, num_channels, use_1_1_conv=False, stride=(1, 1)):
+        super(Residual, self).__init__()
+        self.conv1 = nn.Conv2d(input_channels, num_channels, (3, 3), stride, 1)
+        self.conv2 = nn.Conv2d(num_channels, num_channels, (3, 3), padding=1)
+        if use_1_1_conv:
+            self.conv3 = nn.Conv2d(input_channels, num_channels, (1, 1), stride)
+        else:
+            self.conv3 = None
+        self.bn1 = nn.BatchNorm2d(num_channels)
+        self.bn2 = nn.BatchNorm2d(num_channels)
+
+    def forward(self, f_x):
+        f_y = functional.relu(self.bn1(self.conv1(f_x)))
+        f_y = self.bn2(self.conv2(f_y))
+        if self.conv3:
+            f_x = self.conv3(f_x)
+        f_y += f_x
+        return functional.relu(f_y)
+
+
+def resnet_block(input_channels, num_channels, num_residuals, first_block=False):
+    blk = []
+    for i in range(num_residuals):
+        if i == 0 and not first_block:
+            blk.append(Residual(input_channels, num_channels, True, (2, 2)))
+        else:
+            blk.append(Residual(num_channels, num_channels))
+    return blk
+
+
+b1 = nn.Sequential(
+    nn.Conv2d(1, 64, (3, 3), (2, 2), 3),
+    nn.BatchNorm2d(64), nn.ReLU(),
+    nn.MaxPool2d((3, 3), (2, 2), 1)
+)
+
+b2 = nn.Sequential(*resnet_block(64, 64, 2, True))
+b3 = nn.Sequential(*resnet_block(64, 128, 2))
+b4 = nn.Sequential(*resnet_block(128, 256, 2))
+b5 = nn.Sequential(*resnet_block(256, 512, 2))
+
+net = nn.Sequential(
+    b1, b2, b3, b4, b5,
+    nn.AdaptiveAvgPool2d((1, 1)),
+    nn.Flatten(),
+    nn.Linear(512, 10)
+)
 
 
 def show_images(imgs, num_rows, num_cols, titles=None, scale=1.5):
@@ -265,7 +314,7 @@ def train_ch13(net, train_iter, test_iter, loss, trainer, num_epochs,
           f'{str(devices)}')
 
 
-batch_size, devices, net = 256, try_all_gpus(), d2l.resnet18(10)
+batch_size, devices = 256, try_all_gpus()
 
 
 def init_weights(m):
