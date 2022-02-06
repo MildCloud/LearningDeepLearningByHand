@@ -283,35 +283,44 @@ def try_all_gpus():
     return devices if devices else [torch.device('cpu')]
 
 
-def train_ch13(net, train_iter, test_iter, loss, trainer, num_epochs,
-               devices=try_all_gpus()):
+data_file = os.path.join('.', 'train_result.csv')
+
+
+def train_ch13(f_net, f_train_iter, f_test_iter, f_loss, f_trainer, f_num_epochs,
+               f_devices=try_all_gpus()):
     """Train a model with mutiple GPUs (defined in Chapter 13).
 
     Defined in :numref:`sec_image_augmentation`"""
-    timer, num_batches = Timer(), len(train_iter)
-    animator = Animator(xlabel='epoch', xlim=[1, num_epochs], ylim=[0, 1],
+    timer, num_batches = Timer(), len(f_train_iter)
+    animator = Animator(xlabel='epoch', xlim=[1, f_num_epochs], ylim=[0, 1],
                             legend=['train loss', 'train acc', 'test acc'])
-    net = nn.DataParallel(net, device_ids=devices).to(devices[0])
-    for epoch in range(num_epochs):
+    f_net = nn.DataParallel(f_net, device_ids=f_devices).to(f_devices[0])
+    for epoch in range(f_num_epochs):
         # Sum of training loss, sum of training accuracy, no. of examples,
         # no. of predictions
         metric = Accumulator(4)
-        for i, (features, labels) in enumerate(train_iter):
+        for i, (features, labels) in enumerate(f_train_iter):
             timer.start()
             l, acc = train_batch_ch13(
-                net, features, labels, loss, trainer, devices)
+                f_net, features, labels, f_loss, f_trainer, f_devices)
             metric.add(l, acc, labels.shape[0], labels.numel())
             timer.stop()
             if (i + 1) % (num_batches // 5) == 0 or i == num_batches - 1:
                 animator.add(epoch + (i + 1) / num_batches,
                              (metric[0] / metric[2], metric[1] / metric[3],
                               None))
-        test_acc = evaluate_accuracy_gpu(net, test_iter)
+        test_acc = evaluate_accuracy_gpu(f_net, f_test_iter)
         animator.add(epoch + 1, (None, None, test_acc))
     print(f'loss {metric[0] / metric[2]:.3f}, train acc '
           f'{metric[1] / metric[3]:.3f}, test acc {test_acc:.3f}')
-    print(f'{metric[2] * num_epochs / timer.sum():.1f} examples/sec on '
-          f'{str(devices)}')
+    print(f'{metric[2] * f_num_epochs / timer.sum():.1f} examples/sec on '
+          f'{str(f_devices)}')
+    with open(data_file, 'w') as f:
+        f.write(f'loss {metric[0] / metric[2]:.3f}, train acc '
+          f'{metric[1] / metric[3]:.3f}, test acc {test_acc:.3f}')
+        f.write(f'{metric[2] * f_num_epochs / timer.sum():.1f} examples/sec on '
+          f'{str(f_devices)}')
+    
 
 
 batch_size, devices = 256, try_all_gpus()
