@@ -4,7 +4,7 @@ from torch.utils import data
 from torch.nn import functional
 import torchvision
 from IPython import display
-from matplotlib import pyplot as plt, scale
+from matplotlib import pyplot as plt
 import time
 import numpy as np
 import os
@@ -50,7 +50,7 @@ def resnet_block(input_channels, num_channels, num_residuals, first_block=False)
 
 
 b1 = nn.Sequential(
-    nn.Conv2d(1, 64, (3, 3), (2, 2), 3),
+    nn.Conv2d(3, 64, (3, 3), (2, 2), 3),
     nn.BatchNorm2d(64), nn.ReLU(),
     nn.MaxPool2d((3, 3), (2, 2), 1)
 )
@@ -117,7 +117,7 @@ train_augs = torchvision.transforms.Compose(
     [torchvision.transforms.RandomHorizontalFlip(), torchvision.transforms.ToTensor()]
 )
 
-test_aug = torchvision.transforms.Compose(
+test_augs = torchvision.transforms.Compose(
     [torchvision.transforms.ToTensor()]
 )
 # The ToTensor function is used to generate the images to 4D tensor
@@ -320,6 +320,7 @@ def train_ch13(f_net, f_train_iter, f_test_iter, f_loss, f_trainer, f_num_epochs
           f'{metric[1] / metric[3]:.3f}, test acc {test_acc:.3f}')
         f.write(f'{metric[2] * f_num_epochs / timer.sum():.1f} examples/sec on '
           f'{str(f_devices)}')
+    plt.show()
     
 
 
@@ -340,3 +341,6 @@ def train_with_data_aug(f_train_augs, f_test_augs, f_net, f_lr=0.001):
     loss = nn.CrossEntropyLoss(reduction="none")
     trainer = torch.optim.Adam(f_net.parameters(), lr=f_lr)
     train_ch13(f_net, train_iter, test_iter, loss, trainer, 10, devices)
+
+
+train_with_data_aug(train_augs, test_augs, net)

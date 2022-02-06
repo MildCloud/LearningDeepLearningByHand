@@ -1,0 +1,1 @@
+loss 0.372, train acc 0.873, test acc 0.7484123.4 examples/sec on [device(type='cuda', index=0), device(type='cuda', index=1), device(type='cuda', index=2), device(type='cuda', index=3)]
