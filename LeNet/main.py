@@ -250,4 +250,6 @@ def try_gpu(i=0):
 lr, num_epochs = 0.9, 10
 train_ch6(net, train_iter, test_iter, num_epochs, lr, try_gpu())
 
+plt.savefig("result.png")
 plt.show()
+
