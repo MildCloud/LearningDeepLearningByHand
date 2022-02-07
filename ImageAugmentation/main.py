@@ -9,6 +9,7 @@ import time
 import numpy as np
 import os
 from PIL import Image
+from d2l import torch as d2l
 
 
 figsize=(3.5, 2.5)
@@ -66,6 +67,9 @@ net = nn.Sequential(
     nn.Flatten(),
     nn.Linear(512, 10)
 )
+
+
+net = d2l.resnet18(10, 3)
 
 
 def show_images(imgs, num_rows, num_cols, titles=None, scale=1.5):
@@ -320,7 +324,6 @@ def train_ch13(f_net, f_train_iter, f_test_iter, f_loss, f_trainer, f_num_epochs
           f'{metric[1] / metric[3]:.3f}, test acc {test_acc:.3f}')
         f.write(f'{metric[2] * f_num_epochs / timer.sum():.1f} examples/sec on '
           f'{str(f_devices)}')
-    plt.show()
     
 
 
@@ -344,3 +347,5 @@ def train_with_data_aug(f_train_augs, f_test_augs, f_net, f_lr=0.001):
 
 
 train_with_data_aug(train_augs, test_augs, net)
+plt.savefig("train_result.png")
+plt.show()
