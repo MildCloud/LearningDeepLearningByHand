@@ -1,3 +1,4 @@
+from cProfile import label
 import torch
 from torch import nn
 from torch.utils import data
@@ -349,3 +350,13 @@ def train_with_data_aug(f_train_augs, f_test_augs, f_net, f_lr=0.001):
 train_with_data_aug(train_augs, test_augs, net)
 plt.savefig("train_result.png")
 plt.show()
+
+# for i, (features, labels) in enumerate(load_cifar10(True, train_augs, batch_size)):
+#     if i > 0:
+#         break
+#     print("features.shape = ", features.shape)
+#     print("labels.shape = ", labels.shape)
+#     print("labels.numel() = ", labels.numel())
+# # features.shape =  torch.Size([256, 3, 32, 32])
+# # labels.shape =  torch.Size([256])
+# # labels.numel() =  256
