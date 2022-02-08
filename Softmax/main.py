@@ -273,7 +273,7 @@ def stochastic_gradient_descent(parameters, f_learn_rate, f_batch_size):
         for parameter in parameters:
             # print('parameter = ', parameter)
             # print('parameter.grad = ', parameter.grad)
-            parameter -= learn_rate * parameter.grad / batch_size
+            parameter -= f_learn_rate * parameter.grad /f_batch_size
             parameter.grad.zero_()
 
 
