@@ -1,5 +1,5 @@
 import torch
-from torch import nn, tensor
+from torch import nn
 from torch.utils import data
 from matplotlib import pyplot as plt
 from d2l import torch as d2l
