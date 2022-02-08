@@ -1,3 +1,4 @@
+from audioop import mul
 import torch
 from torch import nn
 from torch.utils import data
@@ -81,7 +82,7 @@ for i in range(tau):
 labels = x[tau:].reshape(-1, 1)
 # print("labels.shape = ", labels.shape)
 # # labels.shape =  torch.Size([996, 1])
-# # features.shape = torch.Size([996, 3])
+# # features.shape = torch.Size([996, 4])
 
 # tensor1 = torch.zeros(3, 4)
 # tensor2 = torch.arange(12)
@@ -152,7 +153,7 @@ class Accumulator:
         return self.data[item]
 
 
-def evaluate_loss(net, data_iter, loss):
+def evaluate_loss(net, data_iter, f_loss):
     """Evaluate the loss of a model on the given dataset.
 
     Defined in :numref:`sec_model_selection`"""
@@ -160,7 +161,7 @@ def evaluate_loss(net, data_iter, loss):
     for X, y in data_iter:
         out = net(X)
         y = y.reshape(out.shape)
-        l = loss(out, y)
+        l = f_loss(out, y)
         metric.add(l.sum(), l.numel())
     return metric[0] / metric[1]
 
@@ -168,15 +169,9 @@ def evaluate_loss(net, data_iter, loss):
 def train(f_net, f_train_iter, f_loss, f_epochs, f_lr):
     trainer = torch.optim.Adam(f_net.parameters(), f_lr)
     for epoch in range(f_epochs):
-        for i, (x_set, y) in enumerate(f_train_iter):
+        for x_set, y in f_train_iter:
             trainer.zero_grad()
-            l = loss(net(x_set), y)
-            # if i == 0:
-            #     print("l = ", l)
-            #     print("l.sum() = ", l.sum())
-            #     print("nn.MSELoss(reduction='sum')(net(x_set), y) = ", nn.MSELoss(reduction='sum')(net(x_set), y))
-            #     # l.sum() =  tensor(1.1433, grad_fn=<SumBackward0>)
-            #     # nn.MSELoss(reduction='sum')(net(x_set), y) =  tensor(1.1433, grad_fn=<MseLossBackward0>)
+            l = f_loss(net(x_set), y)
             l.sum().backward()
             trainer.step()
         print(
@@ -186,3 +181,23 @@ def train(f_net, f_train_iter, f_loss, f_epochs, f_lr):
 
 
 train(net, train_iter, loss, 5, 0.01)
+
+onestep_preds = net(features)
+plot([time, time[tau:]], [x.detach().numpy(), onestep_preds.detach().numpy()], 'time', 
+    'x', legend=['data', '1-step preds'], xlim=[1, 1000], figsize=(6, 3)
+)
+plt.savefig('prediction_result1.png')
+
+
+multistep_preds = torch.zeros(t)
+multistep_preds[: n_train + tau] = x[: n_train + tau]
+for i in range(n_train + tau, t):
+    multistep_preds[i] = net(
+        multistep_preds[i - tau: i].reshape(1, -1)
+    )
+plot([time, time[tau:], time[n_train + tau:]], 
+    [x.detach().numpy(), onestep_preds.detach().numpy(), multistep_preds[n_train + tau:].detach().numpy()], 
+    'time', 'x', legend=['data', '1-step preds'], xlim=[1, 1000], figsize=(6, 3)
+)
+plt.savefig('prediction_result2.png')
+plt.show()
