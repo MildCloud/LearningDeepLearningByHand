@@ -1,8 +1,5 @@
 import collections
-from lib2to3.pgen2 import token
 import re
-import torch
-from d2l import torch as d2l
 
 
 # print([i for i in range(5)])
@@ -22,6 +19,8 @@ lines = read_time_machine()
 # print(f'# text lines: {len(lines)}')
 # print(lines[0])
 # print(lines[10])
+# the time machine by h g wells
+# twinkled and his usually pale face was flushed and animated the
 
 
 def tokensize(f_lines, f_token = 'word'):
@@ -35,10 +34,13 @@ def tokensize(f_lines, f_token = 'word'):
         print('error ' + f_token)
 
 
-tokens = tokensize(lines)
-# for i in range(11):
+# print(list('home'))
+# # ['h', 'o', 'm', 'e']
+tokens = tokensize(lines, 'word')
+# for i in range(1):
 #     print(tokens[i])
-
+# # ['the', 'time', 'machine', 'by', 'h', 'g', 'wells']
+# # ['t', 'h', 'e', ' ', 't', 'i', 'm', 'e', ' ', 'm', 'a', 'c', 'h', 'i', 'n', 'e', ' ', 'b', 'y', ' ', 'h', ' ', 'g', ' ', 'w', 'e', 'l', 'l', 's']
 
 class Vocab:
     """Vocabulary for text."""
