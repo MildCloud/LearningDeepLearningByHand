@@ -143,9 +143,13 @@ bigram_vocab = Vocab(bigram_tokens)
 # print('bigram_vovab.token_freqs[:10] = ', bigram_vovab.token_freqs[:10])
 
 # zip_list = [1, 2, 3, 4, 5, 6]
+# print('zip_list[1:3] = ', zip_list[1:6])
 # print('zip_list[:-1] = ', zip_list[:-1])
 # print('zip_list[:-2] = ', zip_list[:-2])
 # print('zip_list[1:-1] = ', zip_list[1:-1])
+# # zip_list[1:3] =  [2, 3, 4, 5, 6]
+# # list[a:b]: the first number means the index and 
+# the second number means the place(the 6th element)
 # # zip_list[:-1] =  [1, 2, 3, 4, 5]
 # # zip_list[:-2] =  [1, 2, 3, 4]
 # # zip_list[1:-1] =  [2, 3, 4, 5]
@@ -168,3 +172,118 @@ plot([freqs, bigram_freqs, trigram_freqs], xlabel='token: x', ylabel='frequency:
     xscale='log', yscale='log', legend=['unigram', 'bigram', 'trigram'])
 # plt.savefig('3frquency.png')
 # plt.show()
+
+
+def seq_data_iter_random(corpus, batch_size, num_steps):
+    """Generate a minibatch of subsequences using random sampling."""
+    corpus = corpus[random.randint(0, num_steps - 1):]
+    # both included
+    num_subsequences = (len(corpus) - 1) // num_steps
+    initial_indices = list(range(0, num_subsequences * num_steps, num_steps))
+    random.shuffle(initial_indices)
+
+    def data(pos):
+        return corpus[pos:pos + num_steps]
+    
+    num_batches = num_subsequences // batch_size
+    for i in range(0, batch_size * num_batches, batch_size):
+        initial_indices_per_batch = initial_indices[i:i + batch_size]
+        x = [data(j) for j in initial_indices_per_batch]
+        y = [data(j+1) for j in initial_indices_per_batch]
+        yield torch.tensor(x), torch.tensor(y)
+
+
+# print('list(range(0, 4, 4)) = ', list(range(0, 4, 4)))
+# # list(range(0, 4, 4)) =  [0]
+# my_seq = list(range(35))
+# for x, y in seq_data_iter_random(my_seq, batch_size=2, num_steps=5):
+#     print('x = ', x, 'y = ', y)
+# # num_subsequences =  6
+# # initial_indices =  [0, 5, 10, 15, 20, 25]
+# # initial_indices_per_batch =  [20, 0]
+# # x =  [[20, 21, 22, 23, 24], [0, 1, 2, 3, 4]]
+# # y =  [[21, 22, 23, 24, 25], [1, 2, 3, 4, 5]]
+# # x =  tensor([[20, 21, 22, 23, 24],
+# #         [ 0,  1,  2,  3,  4]]) 
+# # y =  tensor([[21, 22, 23, 24, 25],
+# #         [ 1,  2,  3,  4,  5]])
+# # initial_indices_per_batch =  [10, 25]
+# # x =  [[10, 11, 12, 13, 14], [25, 26, 27, 28, 29]]
+# # y =  [[11, 12, 13, 14, 15], [26, 27, 28, 29, 30]]
+# # x =  tensor([[10, 11, 12, 13, 14],
+# #         [25, 26, 27, 28, 29]]) 
+# # y =  tensor([[11, 12, 13, 14, 15],
+# #         [26, 27, 28, 29, 30]])
+# # initial_indices_per_batch =  [15, 5]
+# # x =  [[15, 16, 17, 18, 19], [5, 6, 7, 8, 9]]
+# # y =  [[16, 17, 18, 19, 20], [6, 7, 8, 9, 10]]
+# # x =  tensor([[15, 16, 17, 18, 19],
+# #         [ 5,  6,  7,  8,  9]]) 
+# # y =  tensor([[16, 17, 18, 19, 20],
+# #         [ 6,  7,  8,  9, 10]])
+
+
+def seq_data_iter_sequential(corpus, batch_size, num_steps): 
+    """Generate a minibatch of subsequences using sequential partitioning"""
+    offset = random.randint(0, num_steps)
+    print('offset = ', offset)
+    num_tokens = ((len(corpus) - offset - 1) // batch_size) * batch_size
+    print('num_tokens = ', num_tokens)
+    xs = torch.tensor(corpus[offset:offset + num_tokens])
+    print('xs = ', xs)
+    ys = torch.tensor(corpus[offset + 1:offset + num_tokens + 1])
+    print('ys = ', ys)
+    xs, ys = xs.reshape(batch_size, -1), ys.reshape(batch_size, -1)
+    print('xs = ', xs)
+    print('ys = ', ys)
+    num_batches = xs.shape[1] // num_steps
+    for i in range(0, num_steps * num_batches, num_steps):
+        x = xs[:, i:i + num_steps]
+        y = ys[:, i:i + num_steps]
+        yield x, y
+
+
+# my_seq = list(range(35))
+# for x, y in seq_data__iter_sequential(my_seq, batch_size=2, num_steps=5):
+#     print('x = ', x, '\ny = ', y)
+# # offset =  2
+# # num_tokens =  32
+# # xs =  tensor([ 2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+# #         20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33])
+# # ys =  tensor([ 3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+# #         21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34])
+# # xs =  tensor([[ 2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17],
+# #         [18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]])
+# # ys =  tensor([[ 3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+# #         [19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34]])
+# # x =  tensor([[ 2,  3,  4,  5,  6],
+# #         [18, 19, 20, 21, 22]]) 
+# # y =  tensor([[ 3,  4,  5,  6,  7],
+# #         [19, 20, 21, 22, 23]])
+# # x =  tensor([[ 7,  8,  9, 10, 11],
+# #         [23, 24, 25, 26, 27]]) 
+# # y =  tensor([[ 8,  9, 10, 11, 12],
+# #         [24, 25, 26, 27, 28]])
+# # x =  tensor([[12, 13, 14, 15, 16],
+# #         [28, 29, 30, 31, 32]]) 
+# # y =  tensor([[13, 14, 15, 16, 17],
+# #         [29, 30, 31, 32, 33]])
+
+class SeqDataLoader:  #@save
+    """An iterator to load sequence data."""
+    def __init__(self, batch_size, num_steps, use_random_iter, max_tokens):
+        if use_random_iter:
+            self.data_iter_fn = seq_data_iter_random
+        else:
+            self.data_iter_fn = seq_data_iter_sequential
+        self.corpus, self.vocab = load_corpus_time_machine(max_tokens)
+        self.batch_size, self.num_steps = batch_size, num_steps
+
+    def __iter__(self):
+        return self.data_iter_fn(self.corpus, self.batch_size, self.num_steps)
+
+
+def load_data_time_machine(batch_size, num_steps, use_random_iter=False, max_tokens=10000):
+    """Return the iterator and the vocabulary of the time machine dataset."""
+    data_iter = SeqDataLoader(batch_size, num_steps, use_random_iter, max_tokens)
+    return data_iter, data_iter.vocab
