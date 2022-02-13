@@ -1,4 +1,3 @@
-import imp
 import math
 import torch
 from torch import nn
@@ -191,4 +190,56 @@ def load_data_time_machine(batch_size, num_steps, use_random_iter=False, max_tok
 
 batch_size, num_steps = 32, 35
 train_iter, vocab = load_data_time_machine(batch_size, num_steps)
+
+# print('one hot = ', F.one_hot(torch.tensor([0, 4]), len(vocab)), '\nlen(vocab) = ', len(vocab))
+# # one hot =  tensor([[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+# #          0, 0, 0, 0],
+# #         [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+# #          0, 0, 0, 0]]) 
+# # len(vocab) =  28
+# # shape = torch.Size([2, 28])
+
+# x = torch.arange(10).reshape(2, 5)
+# print('F.one_hot(x.T, 28).shape = ', F.one_hot(x.T, 28).shape)
+# # T means transpose
+# # torch.Size([5, 2, 2F.one_hot(x.T, 28).shape
+
+"""The first dimension represents batch_size and the second dimension represents time step"""
+
+
+def get_params(vocab_size, num_hiddens, device):
+    num_inputs = num_outputs = vocab_size
+
+    def normal(shape):
+        return torch.randn(size=shape, device = device) * 0.01
+
+    w_xh = normal((num_inputs, num_hiddens))
+    w_hh = normal((num_hiddens, num_hiddens))
+    b_h = torch.zeros(num_hiddens, device=device)
+    w_hq = normal((num_hiddens, num_outputs))
+    b_q = torch.zeroes(num_outputs, device = device)
+    params = [w_xh, w_hh, b_h, w_hq, b_q]
+    for param in params:
+        param.requires_grad_(True)
+    return params
+
+
+def init_rnn_state(batch_size, num_hiddens, device):
+    return (torch.zeros((batch_size, num_hiddens), device=device), )
+    # The return value should be a tuple to satisfy further need
+
+
+def rnn(inputs, state, params):
+    w_xh, w_hh, b_h, w_hq, b_q = params
+    h, = state
+    outputs = []
+    for x in inputs:
+        # inputs is a 3D tensor, which the first dimension is the length of time step, 
+        # the second dimension is batchsize, the third dimension is the length of vocab
+        h = torch.tanh(torch.mm(x, w_xh) + torch.mm(h, w_hh) + b_h)
+        y = torch.mm(h, w_hq) + b_q
+        outputs.append(y)
+    return torch.cat(outputs, dim=0), (h, )
+
+
 
