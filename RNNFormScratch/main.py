@@ -192,14 +192,14 @@ batch_size, num_steps = 32, 35
 train_iter, vocab = load_data_time_machine(batch_size, num_steps)
 
 # print('one hot = ', F.one_hot(torch.tensor([0, 4]), len(vocab)), '\nlen(vocab) = ', len(vocab))
-# # one hot =  tensor([[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+# # one hot =tensor([[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 # #          0, 0, 0, 0],
 # #         [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 # #          0, 0, 0, 0]]) 
 # # len(vocab) =  28
 # # shape = torch.Size([2, 28])
 
-# x = torch.arange(10).reshape(2, 5)
+x = torch.arange(10).reshape(2, 5)
 # print('F.one_hot(x.T, 28).shape = ', F.one_hot(x.T, 28).shape)
 # # T means transpose
 # # torch.Size([5, 2, 2F.one_hot(x.T, 28).shape
@@ -217,7 +217,7 @@ def get_params(vocab_size, num_hiddens, device):
     w_hh = normal((num_hiddens, num_hiddens))
     b_h = torch.zeros(num_hiddens, device=device)
     w_hq = normal((num_hiddens, num_outputs))
-    b_q = torch.zeroes(num_outputs, device = device)
+    b_q = torch.zeros(num_outputs, device = device)
     params = [w_xh, w_hh, b_h, w_hq, b_q]
     for param in params:
         param.requires_grad_(True)
@@ -240,6 +240,114 @@ def rnn(inputs, state, params):
         y = torch.mm(h, w_hq) + b_q
         outputs.append(y)
     return torch.cat(outputs, dim=0), (h, )
+    # The return size = torch.Size([batchsize * time_step, ])
+    
+
+class RNNModuleScratch:
+    def __init__(self, vocab_size, num_hiddens, device, get_params, init_state, forward_fn):
+        self.vocab_size, self.num_hiddens = vocab_size, num_hiddens
+        self.params = get_params(vocab_size, num_hiddens, device)
+        self.init_state, self.forward_fn = init_state, forward_fn
+
+    def __call__(self, x, state):
+        # x is batchsize * time step
+        x = F.one_hot(x.T, self.vocab_size).type(torch.float32)
+        return self.forward_fn(x, state, self.params)
+
+    def begin_state(self, batch_size, device):
+        return self.init_state(batch_size, self.num_hiddens, device)
+
+
+def try_gpu(i=0):
+    """Return gpu(i) if exists, otherwise return cpu().
+    Defined in :numref:`sec_use_gpu`"""
+    if torch.cuda.device_count() >= i + 1:
+        return torch.device(f'cuda:{i}')
+    return torch.device('cpu')
+
+
+num_hiddens = 512
+net = RNNModuleScratch(len(vocab), num_hiddens, try_gpu(), get_params, init_rnn_state, rnn)
+state = net.begin_state(x.shape[0], try_gpu())
+# x.shape = torch.Size([2, 5])
+# h.shape = torch.Size([2, 512])
+# After one hot operation: x.shape = torch.Size([5, 2, 28])
+# In input: x.shape = torch.Size([2, 28])
+# w_xh.shape = torch.Size([28, 512])
+# w_hh.shape = torch.Size([512, 512])
+# w_hq.shape = torch.Size([512, 28])
+# b_h.shape = torch.Size([512])
+# b_q.shape = torch.Size([28])
+# y.shape = torch.Size([2, 28])
+# outputs.shape = torch.Size([10, 28])
+y, new_state = net(x.to(try_gpu()), state)
+"""Doing forward function will only change h(i.e. the state), other parameters will not be changed"""
+# new_state is a tuple which has only one element
+# print(y.shape, len(new_state), new_state[0].shape)
+# y.shape = torch.Size([10, 28])
+# len(new_state) = 1
+# new_state[0].shape = torch.Size([2, 512])
+
+# print(torch.zeros(2))
+# print(torch.tensor([[1, 2], [3, 4]]) + torch.ones(2))
+# boarding casting
+# print('len((1, 2)) = ', len((1, 2)))
+# print('len(1,) = ', len((1,)))
+# len((1, 2)) =  2
+# len(1,) =  1
+# outputs = []
+# for i in range(5):
+#     outputs.append(torch.arange(10).reshape(2, 5))
+# print(outputs)
+# print(torch.cat(outputs, dim=0))
+# print(torch.cat(outputs, dim=0).shape)
+# print(torch.cat(outputs, dim=1))
+# print(torch.cat(outputs, dim=1).shape)
+# [tensor([[0, 1, 2, 3, 4],
+#         [5, 6, 7, 8, 9]]), tensor([[0, 1, 2, 3, 4],
+#         [5, 6, 7, 8, 9]]), tensor([[0, 1, 2, 3, 4],
+#         [5, 6, 7, 8, 9]]), tensor([[0, 1, 2, 3, 4],
+#         [5, 6, 7, 8, 9]]), tensor([[0, 1, 2, 3, 4],
+#         [5, 6, 7, 8, 9]])]
+# tensor([[0, 1, 2, 3, 4],
+#         [5, 6, 7, 8, 9],
+#         [0, 1, 2, 3, 4],
+#         [5, 6, 7, 8, 9],
+#         [0, 1, 2, 3, 4],
+#         [5, 6, 7, 8, 9],
+#         [0, 1, 2, 3, 4],
+#         [5, 6, 7, 8, 9],
+#         [0, 1, 2, 3, 4],
+#         [5, 6, 7, 8, 9]])
+# torch.Size([10, 5])
+# tensor([[0, 1, 2, 3, 4, 0, 1, 2, 3, 4, 0, 1, 2, 3, 4, 0, 1, 2, 3, 4, 0, 1, 2, 3,
+#          4],
+#         [5, 6, 7, 8, 9, 5, 6, 7, 8, 9, 5, 6, 7, 8, 9, 5, 6, 7, 8, 9, 5, 6, 7, 8,
+#          9]])
+# torch.Size([2, 25])
+
+
+def predict_ch8(prefix, num_preds, net, vocab, device):
+    # num_preds means the number of character or word need to predic
+    state = net.begin_state(batch_size=1, device=device)
+    # batch_size = 1 means only predict one character
+    outputs = [vocab[prefix[0]]]
+    get_input = lambda: torch.tensor([outputs[-1]], device=device).reshape(1, 1)
+    # outputs[-1] means to get the last element in output
+    for y in prefix[1:]:
+        _, state = net(get_input(), state)
+        outputs.append(vocab[y])
+    for _ in range(num_preds):
+        y, state = net(get_input(), state)
+        outputs.append(int(y.argmax(dim=1).reshape(1)))
+        # argmax function will return the max value through a given axis
+    return ''.join([vocab.idx_to_token[i] for i in outputs])
+    # string.join() fucntion will add string between every element in a iterator
+
+
+# prediction1 = predict_ch8('time traveller ', 10, net, vocab, try_gpu())
+# print('prediction1 = ', prediction1)
+"""The prediction will only produce random result since the parameters in the net have not be trained."""
 
 
 
