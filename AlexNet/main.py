@@ -219,6 +219,8 @@ def train_ch6(f_net, f_train_iter, f_test_iter, f_num_epochs, f_lr, f_device):
             # The self-defined stochastic gradient descent function will set the grd to be zero at the end of the loop
             f_x_set, f_y = f_x_set.to(f_device), f_y.to(f_device)
             f_y_hat = f_net(f_x_set)
+            print('f_y.shape = ', f_y.shape)
+            print('f_y_hat.shape = ', f_y_hat.shape)
             l = loss(f_y_hat, f_y)
             l.backward()
             optimizer.step()

@@ -1,8 +1,3 @@
-from IPython import display
-from sqlite3 import Time
-import numpy as np
-import time
-import math
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -11,6 +6,12 @@ import collections
 import re
 from matplotlib import pyplot as plt
 from d2l import torch as d2l
+import os
+from IPython import display
+from sqlite3 import Time
+import numpy as np
+import time
+import math
 
 
 def read_time_machine():
@@ -155,16 +156,10 @@ def seq_data_iter_random(corpus, batch_size, num_steps):
 def seq_data_iter_sequential(corpus, batch_size, num_steps): 
     """Generate a minibatch of subsequences using sequential partitioning"""
     offset = random.randint(0, num_steps)
-    print('offset = ', offset)
     num_tokens = ((len(corpus) - offset - 1) // batch_size) * batch_size
-    print('num_tokens = ', num_tokens)
     xs = torch.tensor(corpus[offset:offset + num_tokens])
-    print('xs = ', xs)
     ys = torch.tensor(corpus[offset + 1:offset + num_tokens + 1])
-    print('ys = ', ys)
     xs, ys = xs.reshape(batch_size, -1), ys.reshape(batch_size, -1)
-    print('xs = ', xs)
-    print('ys = ', ys)
     num_batches = xs.shape[1] // num_steps
     for i in range(0, num_steps * num_batches, num_steps):
         x = xs[:, i:i + num_steps]
@@ -180,6 +175,8 @@ class SeqDataLoader:
         else:
             self.data_iter_fn = seq_data_iter_sequential
         self.corpus, self.vocab = load_corpus_time_machine(max_tokens)
+        # corpus is a one dimension list which contains the index of every word or character in the text
+        # vocab is an object that mainly has two variable: a dict with {token: index} and a list [token]
         self.batch_size, self.num_steps = batch_size, num_steps
 
     def __iter__(self):
@@ -194,6 +191,7 @@ def load_data_time_machine(batch_size, num_steps, use_random_iter=False, max_tok
 
 batch_size, num_steps = 32, 35
 train_iter, vocab = load_data_time_machine(batch_size, num_steps)
+# train_iter can be used as a iterator, the x, y element in train_iter has the shape of torch.Size([32, 35])
 
 # print('one hot = ', F.one_hot(torch.tensor([0, 4]), len(vocab)), '\nlen(vocab) = ', len(vocab))
 # # one hot =tensor([[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -206,7 +204,7 @@ train_iter, vocab = load_data_time_machine(batch_size, num_steps)
 x = torch.arange(10).reshape(2, 5)
 # print('F.one_hot(x.T, 28).shape = ', F.one_hot(x.T, 28).shape)
 # # T means transpose
-# # torch.Size([5, 2, 2F.one_hot(x.T, 28).shape
+# # torch.Size([5, 2, 28])
 
 """The first dimension represents batch_size and the second dimension represents time step"""
 
@@ -238,6 +236,7 @@ def rnn(inputs, state, params):
     h, = state
     outputs = []
     for x in inputs:
+        # print('in input x.shape = ', x.shape)
         # inputs is a 3D tensor, which the first dimension is the length of time step, 
         # the second dimension is batchsize, the third dimension is the length of vocab
         h = torch.tanh(torch.mm(x, w_xh) + torch.mm(h, w_hh) + b_h)
@@ -284,8 +283,9 @@ state = net.begin_state(x.shape[0], try_gpu())
 # b_q.shape = torch.Size([28])
 # y.shape = torch.Size([2, 28])
 # outputs.shape = torch.Size([10, 28])
-y, new_state = net(x.to(try_gpu()), state)
+
 """Doing forward function will only change h(i.e. the state), other parameters will not be changed"""
+
 # new_state is a tuple which has only one element
 # print(y.shape, len(new_state), new_state[0].shape)
 # y.shape = torch.Size([10, 28])
@@ -414,9 +414,11 @@ def train_epoch_ch8(net, train_iter, loss, updater, device, use_random_iter):
     # use_random_iter means the (i+1)th element in the first batch does not follow the ith element
     state, timer = None, Timer()
     metric = Accumulator(2)
-    timer.start()
+    # timer.start()
+    # There is start function in __init__
     for x_m, y_m in train_iter:
         if state is None or use_random_iter:
+            # if use_random_iter, which means that there is no continuity between batches
             state = net.begin_state(batch_size=x_m.shape[0], device=device)
         else:
             if isinstance(net, nn.Module) and not isinstance(state, tuple):
@@ -425,9 +427,32 @@ def train_epoch_ch8(net, train_iter, loss, updater, device, use_random_iter):
                 for s in state:
                     s.detach_()
         y = y_m.T.reshape(-1)
+        # -1 means change y_m to one dimension tensor
+        # y.shape = torch.Size([35 * 32])
         x_m, y = x_m.to(device), y.to(device)
+        # x_m.shape = torch.Size([32, 35])
+        # After one hot x_m.shape = torch.Size([35, 32, 28])
         y_hat, state = net(x_m, state)
-        l = loss(y_hat, y.long()).mean()
+        # vocab_size = 28
+        # num_inputs = num_outputs = 28
+        # num_hidden = 512
+        # in input: x.shape = torch.Size([32, 28])
+        # h.shape = torch.Size([32, 512])
+        # w_xh.shape = torch.Size([28, 512])
+        # w_hh.shape = torch.Size([512, 512])
+        # b_h.shape = torch.Size([512])
+        # w_hq.shape = torch.Size([512, 28])
+        # b_q.shape = torch.Size([28])
+        # state = (h, )
+        # h = x @ w_xh + h @ w_hh + b_h
+        # h.shape = torch.Size([32, 512])
+        # y = h @ w_hq + b_q
+        # y.shape = torch.Size([32, 28])
+        # outputs.shape = torch.Size([32 * 35, 28]) 
+        # loss.shape = torch.Size([]), which means that loss is a scalar
+        l = loss(y_hat, y)
+        # In cross entropy function the target(y) is converted into one hot code
+        # The log in cross entropy means ln
         if isinstance(updater, torch.optim.Optimizer):
             updater.zero_grad()
             l.backward()
@@ -437,6 +462,7 @@ def train_epoch_ch8(net, train_iter, loss, updater, device, use_random_iter):
             l.backward()
             grad_clipping(net, 1)
             updater(batch_size=1)
+        # after update state will not be changed
         metric.add(l * y.numel(), y.numel())
     return math.exp(metric[0] / metric[1]), metric[1] / timer.stop()
 
@@ -481,6 +507,15 @@ class Animator:
         display.clear_output(wait=True)
 
 
+data_file = os.path.join('.', 'train_result.csv')
+
+
+def sgd(params, lr, batch_size):
+    with torch.no_grad():
+        for param in params:
+            param -= lr * param.grad / batch_size
+            param.grad.zero_()
+
 
 def train_ch8(net, train_iter, vocab, lr, num_epochs, device,
               use_random_iter=False):
@@ -492,7 +527,7 @@ def train_ch8(net, train_iter, vocab, lr, num_epochs, device,
     if isinstance(net, nn.Module):
         updater = torch.optim.SGD(net.parameters(), lr)
     else:
-        updater = lambda batch_size: d2l.sgd(net.params, lr, batch_size)
+        updater = lambda batch_size: sgd(net.params, lr, batch_size)
     predict = lambda prefix: predict_ch8(prefix, 50, net, vocab, device)
     # Train and predict
     for epoch in range(num_epochs):
@@ -504,3 +539,15 @@ def train_ch8(net, train_iter, vocab, lr, num_epochs, device,
     print(f'perplexity {ppl:.1f}, {speed:.1f} tokens/sec on {str(device)}')
     print(predict('time traveller'))
     print(predict('traveller'))
+    # with open(data_file, 'w') as f:
+    #     f.write(f'perplexity {ppl:.1f}, {speed:.1f} tokens/sec on {str(device)}')
+    #     f.write('\n')
+    #     f.write(predict('time traveller'))
+    #     f.write('\n')
+    #     f.write(predict('traveller'))
+
+num_epochs, lr = 500, 1
+train_ch8(net, train_iter, vocab, lr, num_epochs, try_gpu())
+
+# plt.savefig("train_result.png")
+plt.show()
