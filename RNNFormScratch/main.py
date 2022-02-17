@@ -253,6 +253,8 @@ class RNNModuleScratch:
 
     def __call__(self, x, state):
         # x is batchsize * time step
+        # Using tranpose means that the second dimension(the column) of the input is a continue text, 
+        # and since not using random iter is false, the corresponding column in next batch will just follow the previous batch 
         x = F.one_hot(x.T, self.vocab_size).type(torch.float32)
         return self.forward_fn(x, state, self.params)
 

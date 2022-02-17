@@ -190,17 +190,22 @@ batch_size, num_steps = 32, 35
 train_iter, vocab = load_data_time_machine(batch_size, num_steps)
 num_hiddens = 256
 rnn_layer = nn.RNN(len(vocab), num_hiddens)
-state = torch.zeros((1, batch_size, num_hiddens))
-X = torch.rand(size=(num_steps, batch_size, len(vocab)))
-Y, state_new = rnn_layer(X, state)
+# state = torch.zeros((1, batch_size, num_hiddens))
+# state.shape = torch.Size([1, 32, 256])
+# X = torch.rand(size=(num_steps, batch_size, len(vocab)))
+# Y, state_new = rnn_layer(X, state)
+# Y.shape = torch.Size([35, 32, 256])
+# state_new.shape = torch.Size([1, 32, 256])
 
 
 class RNNModel(nn.Module):
-    def __init__(self, rnn_layer, vocab_size, **kwargs):
+    def __init__(self, rnn_layer, vocab_size):
         super(RNNModel, self).__init__()
         self.rnn = rnn_layer
         self.vocab_size = vocab_size
         self.num_hiddens = self.rnn.hidden_size
+        # In pytorch, RNN layer only contain the hidden layer, so the construction of output layer is needed
+        # The output layer: y = torch.mm(h, w_hq) + b_q and concat y to get the output
         if not self.rnn.bidirectional:
             self.num_directions = 1
             self.linear = nn.Linear(self.num_hiddens, self.vocab_size)
