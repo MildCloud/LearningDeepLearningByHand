@@ -205,7 +205,7 @@ def get_params(vocab_size, num_hiddens, device):
     w_xr, w_hr, b_r = three()
     w_xh, w_hh, b_h = three()
 
-    w_hq = normal(num_hiddens, num_outputs)
+    w_hq = normal((num_hiddens, num_outputs))
     b_q = torch.zeros(num_outputs, device=device)
 
     params = [w_xz, w_hz, b_z, w_xr, w_hr, b_r, w_xh, w_hh, b_h, w_hq, b_q]
@@ -227,7 +227,7 @@ def gru(inputs, state, params):
         z = F.sigmoid((x @ w_xz) + (h @ w_hz) + b_z)
         # The only difference between torch.sigmoid and torch.nn.functional.sigmoid is that: 
         # torch. will make pyhon function call and torch.nn.function will make c function call
-        h_tilda = F.tanh((x @ w_xh) + ((r * h) @ w_hh) + b_h)
+        h_tilda = torch.tanh((x @ w_xh) + ((r * h) @ w_hh) + b_h)
         # The shape of r, z, h_tilda, h are all torch.Size([batch_size, num_hiddens])
         h = z * h + (1 - z) * h_tilda
         h = z * h + (1 - z) * h_tilda
@@ -335,7 +335,6 @@ def train_epoch_ch8(net, train_iter, loss, updater, device, use_random_iter):
     metric = Accumulator(2)
     for x_m, y_m in train_iter:
         if state is None or use_random_iter:
-            # if use_random_iter, which means that there is no continuity between batches
             state = net.begin_state(batch_size=x_m.shape[0], device=device)
         else:
             if isinstance(net, nn.Module) and not isinstance(state, tuple):
@@ -344,29 +343,8 @@ def train_epoch_ch8(net, train_iter, loss, updater, device, use_random_iter):
                 for s in state:
                     s.detach_()
         y = y_m.T.reshape(-1)
-        # -1 means change y_m to one dimension tensor
-        # y.shape = torch.Size([35 * 32])
         x_m, y = x_m.to(device), y.to(device)
-        # x_m.shape = torch.Size([32, 35])
-        # After one hot x_m.shape = torch.Size([35, 32, 28])
         y_hat, state = net(x_m, state)
-        # vocab_size = 28
-        # num_inputs = num_outputs = 28
-        # num_hidden = 512
-        # in input: x.shape = torch.Size([32, 28])
-        # h.shape = torch.Size([32, 512])
-        # w_xh.shape = torch.Size([28, 512])
-        # w_hh.shape = torch.Size([512, 512])
-        # b_h.shape = torch.Size([512])
-        # w_hq.shape = torch.Size([512, 28])
-        # b_q.shape = torch.Size([28])
-        # state = (h, )
-        # h = x @ w_xh + h @ w_hh + b_h
-        # h.shape = torch.Size([32, 512])
-        # y = h @ w_hq + b_q
-        # y.shape = torch.Size([32, 28])
-        # outputs.shape = torch.Size([32 * 35, 28]) 
-        # loss.shape = torch.Size([]), which means that loss is a scalar
         l = loss(y_hat, y)
         if isinstance(updater, torch.optim.Optimizer):
             updater.zero_grad()
@@ -464,7 +442,7 @@ train_iter, vocab = load_data_time_machine(batch_size=batch_size, num_steps=num_
 
 vacab_size, num_hiddens, device = len(vocab), 256, try_gpu()
 num_epochs, lr = 500, 1
-model = RNNModuleScratch(len(vocab), num_hiddens, device, get_params(), init_gru_state, gru)
+model = RNNModuleScratch(len(vocab), num_hiddens, device, get_params, init_gru_state, gru)
 train_ch8(model, train_iter, vocab, lr, num_epochs, device)
 
 plt.savefig("train_result.png")
