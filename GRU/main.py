@@ -228,6 +228,7 @@ def gru(inputs, state, params):
         # The only difference between torch.sigmoid and torch.nn.functional.sigmoid is that: 
         # torch. will make pyhon function call and torch.nn.function will make c function call
         h_tilda = F.tanh((x @ w_xh) + ((r * h) @ w_hh) + b_h)
+        # The shape of r, z, h_tilda, h are all torch.Size([batch_size, num_hiddens])
         h = z * h + (1 - z) * h_tilda
         h = z * h + (1 - z) * h_tilda
         y = h @ w_hq + b_q
@@ -257,6 +258,206 @@ class RNNModuleScratch:
         return self.init_state(batch_size, self.num_hiddens, device)
 
 
+def predict_ch8(prefix, num_preds, net, vocab, device):
+    state = net.begin_state(batch_size=1, device=device)
+    outputs = [vocab[prefix[0]]]
+    get_input = lambda: torch.tensor([outputs[-1]], device=device).reshape(1, 1)
+    for y in prefix[1:]:
+        _, state = net(get_input(), state)
+        outputs.append(vocab[y])
+    for _ in range(num_preds):
+        y, state = net(get_input(), state)
+        outputs.append(int(y.argmax(dim=1).reshape(1)))
+    return ''.join([vocab.idx_to_token[i] for i in outputs])
+
+
+"""The prediction will only produce random result since the parameters in the net have not be trained."""
+
+
+def grad_clipping(net, theta):
+    """Clip the gradient"""
+    if isinstance(net, nn.Module):
+        params = [p for p in net.parameters() if p.requires_grad]
+    else:
+        params = net.params
+    norm = torch.sqrt(sum(torch.sum(p.grad ** 2) for p in params))
+    if norm > theta:
+        for param in params:
+            param.grad[:] *= theta / norm
+
+
+class Timer:
+    """Record multiple running times."""
+    def __init__(self):
+        """Defined in :numref:`subsec_linear_model`"""
+        self.times = []
+        self.start()
+
+    def start(self):
+        """Start the timer."""
+        self.tik = time.time()
+
+    def stop(self):
+        """Stop the timer and record the time in a list."""
+        self.times.append(time.time() - self.tik)
+        return self.times[-1]
+
+    def avg(self):
+        """Return the average time."""
+        return sum(self.times) / len(self.times)
+
+    def sum(self):
+        """Return the sum of time."""
+        return sum(self.times)
+
+    def cumsum(self):
+        """Return the accumulated time."""
+        return np.array(self.times).cumsum().tolist()
+
+
+class Accumulator:
+    def __init__(self, n):
+        self.data = [0.0] * n
+
+    def add(self, *args):
+        self.data = [a + float(b) for a, b in zip(self.data, args)]
+
+    def reset(self):
+        self.data = [0.0] * len(self.data)
+
+    def __getitem__(self, item):
+        return self.data[item]
+
+
+def train_epoch_ch8(net, train_iter, loss, updater, device, use_random_iter):
+    """Train a net within one epoch."""
+    state, timer = None, Timer()
+    metric = Accumulator(2)
+    for x_m, y_m in train_iter:
+        if state is None or use_random_iter:
+            # if use_random_iter, which means that there is no continuity between batches
+            state = net.begin_state(batch_size=x_m.shape[0], device=device)
+        else:
+            if isinstance(net, nn.Module) and not isinstance(state, tuple):
+                state.detach_()
+            else:
+                for s in state:
+                    s.detach_()
+        y = y_m.T.reshape(-1)
+        # -1 means change y_m to one dimension tensor
+        # y.shape = torch.Size([35 * 32])
+        x_m, y = x_m.to(device), y.to(device)
+        # x_m.shape = torch.Size([32, 35])
+        # After one hot x_m.shape = torch.Size([35, 32, 28])
+        y_hat, state = net(x_m, state)
+        # vocab_size = 28
+        # num_inputs = num_outputs = 28
+        # num_hidden = 512
+        # in input: x.shape = torch.Size([32, 28])
+        # h.shape = torch.Size([32, 512])
+        # w_xh.shape = torch.Size([28, 512])
+        # w_hh.shape = torch.Size([512, 512])
+        # b_h.shape = torch.Size([512])
+        # w_hq.shape = torch.Size([512, 28])
+        # b_q.shape = torch.Size([28])
+        # state = (h, )
+        # h = x @ w_xh + h @ w_hh + b_h
+        # h.shape = torch.Size([32, 512])
+        # y = h @ w_hq + b_q
+        # y.shape = torch.Size([32, 28])
+        # outputs.shape = torch.Size([32 * 35, 28]) 
+        # loss.shape = torch.Size([]), which means that loss is a scalar
+        l = loss(y_hat, y)
+        if isinstance(updater, torch.optim.Optimizer):
+            updater.zero_grad()
+            l.backward()
+            grad_clipping(net, 1)
+            updater.step()
+        else:
+            l.backward()
+            grad_clipping(net, 1)
+            updater(batch_size=1)
+        metric.add(l * y.numel(), y.numel())
+    return math.exp(metric[0] / metric[1]), metric[1] / timer.stop()
+
+
+class Animator:
+    """For plotting data in animation."""
+
+    def __init__(self, xlabel=None, ylabel=None, legend=None, xlim=None,
+                 ylim=None, xscale='linear', yscale='linear',
+                 fmts=('-', 'm--', 'g-.', 'r:'), nrows=1, ncols=1,
+                 figsize=(3.5, 2.5)):
+        if legend is None:
+            legend = []
+        self.fig, self.axes = plt.subplots(nrows, ncols, figsize=figsize)
+        if nrows * ncols == 1:
+            self.axes = [self.axes, ]
+        self.config_axes = lambda: set_axes(self.axes[0], xlabel, ylabel, xlim, ylim, xscale, yscale, legend)
+        self.X, self.Y, self.fmts = None, None, fmts
+
+    def add(self, x, y):
+        if not hasattr(y, "__len__"):
+            y = [y]
+        n = len(y)
+        if not hasattr(x, "__len__"):
+            x = [x] * n
+        if not self.X:
+            self.X = [[] for _ in range(n)]
+        if not self.Y:
+            self.Y = [[] for _ in range(n)]
+        for i, (a, b) in enumerate(zip(x, y)):
+            if a is not None and b is not None:
+                self.X[i].append(a)
+                self.Y[i].append(b)
+        self.axes[0].cla()
+        for x, y, fmt in zip(self.X, self.Y, self.fmts):
+            self.axes[0].plot(x, y, fmt)
+        self.config_axes()
+        display.display(self.fig)
+        display.clear_output(wait=True)
+
+
+data_file = os.path.join('.', 'train_result.csv')
+
+
+def sgd(params, lr, batch_size):
+    with torch.no_grad():
+        for param in params:
+            param -= lr * param.grad / batch_size
+            param.grad.zero_()
+
+
+def train_ch8(net, train_iter, vocab, lr, num_epochs, device,
+              use_random_iter=False):
+    """Train a model (defined in Chapter 8)."""
+    loss = nn.CrossEntropyLoss()
+    animator = Animator(xlabel='epoch', ylabel='perplexity',
+                            legend=['train'], xlim=[10, num_epochs])
+    # Initialize
+    if isinstance(net, nn.Module):
+        updater = torch.optim.SGD(net.parameters(), lr)
+    else:
+        updater = lambda batch_size: sgd(net.params, lr, batch_size)
+    predict = lambda prefix: predict_ch8(prefix, 50, net, vocab, device)
+    # Train and predict
+    for epoch in range(num_epochs):
+        ppl, speed = train_epoch_ch8(
+            net, train_iter, loss, updater, device, use_random_iter)
+        if (epoch + 1) % 10 == 0:
+            print(predict('time traveller'))
+            animator.add(epoch + 1, [ppl])
+    print(f'perplexity {ppl:.1f}, {speed:.1f} tokens/sec on {str(device)}')
+    print(predict('time traveller'))
+    print(predict('traveller'))
+    with open(data_file, 'w') as f:
+        f.write(f'perplexity {ppl:.1f}, {speed:.1f} tokens/sec on {str(device)}')
+        f.write('\n')
+        f.write(predict('time traveller'))
+        f.write('\n')
+        f.write(predict('traveller'))
+
+
 
 batch_size, num_steps = 32, 35
 train_iter, vocab = load_data_time_machine(batch_size=batch_size, num_steps=num_steps)
@@ -264,4 +465,8 @@ train_iter, vocab = load_data_time_machine(batch_size=batch_size, num_steps=num_
 vacab_size, num_hiddens, device = len(vocab), 256, try_gpu()
 num_epochs, lr = 500, 1
 model = RNNModuleScratch(len(vocab), num_hiddens, device, get_params(), init_gru_state, gru)
+train_ch8(model, train_iter, vocab, lr, num_epochs, device)
+
+plt.savefig("train_result.png")
+plt.show()
 
