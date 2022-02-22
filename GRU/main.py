@@ -5,12 +5,12 @@ import random
 import collections
 import re
 from matplotlib import pyplot as plt
-from d2l import torch as d2l
 import os
 from IPython import display
 import numpy as np
 import time
 import math
+from d2l import torch as d2l
 
 
 def read_time_machine():
@@ -440,10 +440,62 @@ def train_ch8(net, train_iter, vocab, lr, num_epochs, device,
 batch_size, num_steps = 32, 35
 train_iter, vocab = load_data_time_machine(batch_size=batch_size, num_steps=num_steps)
 
-vacab_size, num_hiddens, device = len(vocab), 256, try_gpu()
+vocab_size, num_hiddens, device = len(vocab), 256, try_gpu()
 num_epochs, lr = 500, 1
 model = RNNModuleScratch(len(vocab), num_hiddens, device, get_params, init_gru_state, gru)
 train_ch8(model, train_iter, vocab, lr, num_epochs, device)
+
+
+class RNNModel(nn.Module):
+    """The RNN model.
+
+    Defined in :numref:`sec_rnn-concise`"""
+    def __init__(self, rnn_layer, vocab_size, **kwargs):
+        super(RNNModel, self).__init__(**kwargs)
+        self.rnn = rnn_layer
+        self.vocab_size = vocab_size
+        self.num_hiddens = self.rnn.hidden_size
+        # If the RNN is bidirectional (to be introduced later),
+        # `num_directions` should be 2, else it should be 1.
+        if not self.rnn.bidirectional:
+            self.num_directions = 1
+            self.linear = nn.Linear(self.num_hiddens, self.vocab_size)
+        else:
+            self.num_directions = 2
+            self.linear = nn.Linear(self.num_hiddens * 2, self.vocab_size)
+
+    def forward(self, inputs, state):
+        X = F.one_hot(inputs.T.long(), self.vocab_size)
+        X = X.to(torch.float32)
+        Y, state = self.rnn(X, state)
+        # The fully connected layer will first change the shape of `Y` to
+        # (`num_steps` * `batch_size`, `num_hiddens`). Its output shape is
+        # (`num_steps` * `batch_size`, `vocab_size`).
+        output = self.linear(Y.reshape((-1, Y.shape[-1])))
+        return output, state
+
+    def begin_state(self, device, batch_size=1):
+        if not isinstance(self.rnn, nn.LSTM):
+            # `nn.GRU` takes a tensor as hidden state
+            return  torch.zeros((self.num_directions * self.rnn.num_layers,
+                                 batch_size, self.num_hiddens),
+                                device=device)
+        else:
+            # `nn.LSTM` takes a tuple of hidden states
+            return (torch.zeros((
+                self.num_directions * self.rnn.num_layers,
+                batch_size, self.num_hiddens), device=device),
+                    torch.zeros((
+                        self.num_directions * self.rnn.num_layers,
+                        batch_size, self.num_hiddens), device=device))
+
+
+num_inputs = vocab_size
+gru_layer = nn.GRU(num_inputs, num_hiddens)
+model = RNNModel(gru_layer, len(vocab))
+model = model.to(device)
+# train_ch8(model, train_iter, vocab, lr, num_epochs, device)
+
 
 plt.savefig("train_result.png")
 plt.show()
