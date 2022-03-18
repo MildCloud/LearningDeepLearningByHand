@@ -1,4 +1,6 @@
+import enum
 import os
+from tkinter.messagebox import NO
 import torch
 from d2l import torch as d2l
 
@@ -18,7 +20,6 @@ raw_text = read_data_nmt()
 # The type of raw is string
 
 
-#@save
 def preprocess_nmt(text):
     """Preprocess the English-French dataset."""
     def no_space(char, prev_char):
@@ -33,5 +34,22 @@ def preprocess_nmt(text):
            for i, char in enumerate(text)]
     return ''.join(out)
 
+
 text = preprocess_nmt(raw_text)
-print(text[:80])
+
+
+def tokenize_nmt(text, num_examples=None):
+    """Tokenize the English-French dataset"""
+    source, target = [], []
+    for i, line in enumerate(text.split('\n')):
+        if num_examples and i > num_examples:
+            break
+        parts = line.split('\t')
+        if len(parts) == 2:
+            source.append(parts[0].split(' '))
+            target.append(parts[1].split(' '))
+    return source, target
+
+
+source, target = tokenize_nmt(text)
+print(source[:6], target[:6])
