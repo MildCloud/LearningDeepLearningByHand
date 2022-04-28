@@ -53,6 +53,29 @@ def tokenize_nmt(text, num_examples=None):
 
 # source, target = tokenize_nmt(text)
 # source and target are two dimensional lists and the second dimension is 2
+#
+# change the dataset from
+# go .        va !
+# hi .        salut !
+# run !       cours !
+# run !       courez !
+# who ?       qui ?
+# wow !       ça alors !
+#
+# to
+#
+# ([['go', '.'],
+#   ['hi', '.'],
+#   ['run', '!'],
+#   ['run', '!'],
+#   ['who', '?'],
+#   ['wow', '!']],
+#  [['va', '!'],
+#   ['salut', '!'],
+#   ['cours', '!'],
+#   ['courez', '!'],
+#   ['qui', '?'],
+#   ['ça', 'alors', '!']])
 
 
 class Vocab:
@@ -117,6 +140,7 @@ def build_array_nmt(lines, vocab, num_steps):
     ])
     valid_len = (array != vocab['<pad>']).type(torch.int32).sum(1)
     return array, valid_len
+# The dimension of array is 2
 
 
 def load_array(data_arrays, batch_size, is_train=True):

@@ -254,7 +254,6 @@ def train_ch6(f_net, f_train_iter, f_test_iter, f_num_epochs, f_lr, f_device):
 
 def try_gpu(i=0):
     """Return gpu(i) if exists, otherwise return cpu().
-
     Defined in :numref:`sec_use_gpu`"""
     if torch.cuda.device_count() >= i + 1:
         return torch.device(f'cuda:{i}')
