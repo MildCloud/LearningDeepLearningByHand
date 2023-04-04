@@ -55,13 +55,14 @@ class Vocab:
         self.token_freqs = sorted(counter.items(), key=lambda x: x[1],
                                    reverse=True)
         # The counter is a dict, and item() will return a dict_items([]) of tuple
-        # The first element of the tuple is a word, and the second one is its frequency
+        # The first element of the tuple is a word, and the second one is its term frequency
         # The index for the unknown token is 0
         self.unk, uniq_tokens = 0, ['<unk>'] + reserved_tokens
         uniq_tokens += [
             token for token, freq in self.token_freqs
             if freq >= min_freq and token not in uniq_tokens
         ]
+        # uniq_tokens is list of word string, without term frequency
         self.idx_to_token, self.token_to_idx = [], dict()
         for token in uniq_tokens:
             self.idx_to_token.append(token)
@@ -74,6 +75,7 @@ class Vocab:
         if not isinstance(tokens, (list, tuple)):
             # if tokens is a list or a tuple
             return self.token_to_idx.get(tokens, self.unk)
+            # if tokens does not exist, return self.unk
         return [self.__getitem__(token) for token in tokens]
 
     def to_tokens(self, indices):
@@ -119,4 +121,6 @@ def load_corpus_time_machine(max_tokens = -1):
 
 
 corpus, vocab = load_corpus_time_machine()
-print(len(corpus), len(vocab))
+print(len(corpus), len(vocab.idx_to_token))
+print("corpus = ", corpus[0])
+print("vocab.idx_to_token = ", vocab.idx_to_token)

@@ -189,8 +189,10 @@ def load_data_time_machine(batch_size, num_steps, use_random_iter=False, max_tok
 
 
 batch_size, num_steps = 32, 35
+# corpus = [vocab[token] for line in tokens for token in line]
 train_iter, vocab = load_data_time_machine(batch_size, num_steps)
 # train_iter can be used as a iterator, the x, y element in train_iter has the shape of torch.Size([32, 35])
+# 35 continuouse words or characters
 
 # print('one hot = ', F.one_hot(torch.tensor([0, 4]), len(vocab)), '\nlen(vocab) = ', len(vocab))
 # # one hot =tensor([[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -240,6 +242,7 @@ def rnn(inputs, state, params):
         # the second dimension is batchsize, the third dimension is the length of vocab
         h = torch.tanh(torch.mm(x, w_xh) + torch.mm(h, w_hh) + b_h)
         y = torch.mm(h, w_hq) + b_q
+        # y.shape = (batch_size, 28)
         outputs.append(y)
     return torch.cat(outputs, dim=0), (h, )
     # The return size = torch.Size([batchsize * time_step, ])
@@ -439,6 +442,7 @@ def train_epoch_ch8(net, train_iter, loss, updater, device, use_random_iter):
         # num_hidden = 512
         # in input: x.shape = torch.Size([32, 28])
         # h.shape = torch.Size([32, 512])
+        # h.shape = batch_size * num_hidden
         # w_xh.shape = torch.Size([28, 512])
         # w_hh.shape = torch.Size([512, 512])
         # b_h.shape = torch.Size([512])
@@ -548,7 +552,7 @@ def train_ch8(net, train_iter, vocab, lr, num_epochs, device,
         f.write(predict('traveller'))
 
 num_epochs, lr = 500, 1
-train_ch8(net, train_iter, vocab, lr, num_epochs, try_gpu())
+# train_ch8(net, train_iter, vocab, lr, num_epochs, try_gpu())
 
 plt.savefig("train_result.png")
 plt.show()
