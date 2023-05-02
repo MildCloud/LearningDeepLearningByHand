@@ -237,8 +237,7 @@ def rnn(inputs, state, params):
     h, = state
     outputs = []
     for x in inputs:
-        # print('in input x.shape = ', x.shape)
-        # x.shape = torch.Size([32, 28])
+        print('in input x.shape = ', x.shape)
         # inputs is a 3D tensor, which the first dimension is the length of time step, 
         # the second dimension is batchsize, the third dimension is the length of vocab
         h = torch.tanh(torch.mm(x, w_xh) + torch.mm(h, w_hh) + b_h)
